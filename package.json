@@ -1,0 +1,14 @@
+{
+  "name": "trans",
+  "version": "1.0.0",
+  "description": "Simple LAN file transfer tool for migration",
+  "type": "module",
+  "bin": {
+    "trans-server": "./bin/server.js",
+    "trans-client": "./bin/client.js"
+  },
+  "scripts": {
+    "server": "node bin/server.js",
+    "client": "node bin/client.js"
+  }
+}
