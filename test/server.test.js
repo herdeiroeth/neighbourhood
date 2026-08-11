@@ -59,9 +59,11 @@ test('rejects a symbolic link that resolves outside the shared root', async (t) 
 
   const download = await fetch(apiUrl(origin, '/api/download', '/link.txt'));
   const listing = await fetch(apiUrl(origin, '/api/list', '/'));
+  const listingBody = await listing.json();
 
   assert.equal(download.status, 403);
-  assert.equal((await listing.json()).some((entry) => entry.name === 'link.txt'), false);
+  assert.equal(listing.status, 200, JSON.stringify(listingBody));
+  assert.equal(listingBody.some((entry) => entry.name === 'link.txt'), false);
 });
 
 test('serves an empty file without hanging', async (t) => {
