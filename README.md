@@ -2,6 +2,8 @@
 
 > 🏘️ **Zero-dependency LAN file transfer tool** — share files between machines on the same network instantly.
 
+[![EN](https://img.shields.io/badge/lang-en-red.svg)](README.md) [![zh](https://img.shields.io/badge/lang-zh--CN-blue.svg)](README.zh.md)
+
 ![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![No Dependencies](https://img.shields.io/badge/dependencies-0-success)
