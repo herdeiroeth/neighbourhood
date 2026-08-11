@@ -1,0 +1,21 @@
+name: Feature request
+description: Propose a focused improvement to the CLI or protocol
+title: "feat: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the user need before proposing an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Expected outcome
+    validations:
+      required: true
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Compatibility and security considerations
