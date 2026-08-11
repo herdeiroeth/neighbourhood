@@ -1,7 +1,7 @@
 {
   "name": "trans",
   "version": "1.0.0",
-  "description": "Simple LAN file transfer tool for migration",
+  "description": "🚀 Simple LAN file transfer tool — share files between machines on the same network with resume support",
   "type": "module",
   "bin": {
     "trans-server": "./bin/server.js",
@@ -10,5 +10,26 @@
   "scripts": {
     "server": "node bin/server.js",
     "client": "node bin/client.js"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/herdeiroeth/trans.git"
+  },
+  "keywords": [
+    "lan",
+    "file-transfer",
+    "network",
+    "p2p",
+    "local-network",
+    "file-sharing"
+  ],
+  "author": "herdeiroeth",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "bin/",
+    "lib/"
+  ]
 }

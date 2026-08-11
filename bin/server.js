@@ -6,7 +6,7 @@ import { DEFAULT_PORT } from '../lib/shared/protocol.js';
 
 const args = process.argv.slice(2);
 let rootDir = process.cwd();
-let port = DEFAULT_PORT;
+let port = parseInt(process.env.PORT, 10) || DEFAULT_PORT;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--port' && args[i + 1]) {
