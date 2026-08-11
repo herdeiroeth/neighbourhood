@@ -1,6 +1,6 @@
-# trans
+# neighbourhood
 
-> 🚀 **Zero-dependency LAN file transfer tool** — share files between machines on the same network instantly.
+> 🏘️ **Zero-dependency LAN file transfer tool** — share files between machines on the same network instantly.
 
 ![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
@@ -30,8 +30,8 @@
 # No npm install needed! Just clone and run.
 
 # Clone the repo
-git clone https://github.com/herdeiroeth/trans.git
-cd trans
+git clone https://github.com/herdeiroeth/neighbourhood.git
+cd neighbourhood
 
 # Terminal 1: Start the server (shares current directory)
 node bin/server.js

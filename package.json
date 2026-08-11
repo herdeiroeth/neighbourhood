@@ -1,7 +1,7 @@
 {
-  "name": "trans",
+  "name": "neighbourhood",
   "version": "1.0.0",
-  "description": "🚀 Simple LAN file transfer tool — share files between machines on the same network with resume support",
+  "description": "🏘️ LAN file transfer tool — share files between machines on the same network with resume support",
   "type": "module",
   "bin": {
     "trans-server": "./bin/server.js",
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/herdeiroeth/trans.git"
+    "url": "git+https://github.com/herdeiroeth/neighbourhood.git"
   },
   "keywords": [
     "lan",
