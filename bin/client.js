@@ -2,4 +2,4 @@
 
 import { run } from '../lib/client/index.js';
 
-run(process.argv);
+process.exitCode = await run(process.argv);

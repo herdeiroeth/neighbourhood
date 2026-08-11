@@ -1,35 +1,51 @@
 {
-  "name": "neighbourhood",
-  "version": "1.0.0",
-  "description": "🏘️ LAN file transfer tool — share files between machines on the same network with resume support",
+  "name": "@herdeiroeth/neighbourhood",
+  "version": "0.1.0",
+  "description": "Command-line file transfer over trusted local networks with resumable downloads.",
   "type": "module",
+  "packageManager": "npm@11.19.0",
   "bin": {
-    "trans-server": "./bin/server.js",
-    "trans-client": "./bin/client.js"
+    "neighbourhood-client": "./bin/client.js",
+    "neighbourhood-server": "./bin/server.js"
   },
   "scripts": {
-    "server": "node bin/server.js",
-    "client": "node bin/client.js"
+    "check": "node ./scripts/check.mjs",
+    "client": "node ./bin/client.js",
+    "server": "node ./bin/server.js",
+    "test": "node --test --test-reporter=spec",
+    "test:coverage": "node --experimental-test-coverage --test",
+    "prepack": "npm run check && npm test"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/herdeiroeth/neighbourhood.git"
   },
+  "bugs": {
+    "url": "https://github.com/herdeiroeth/neighbourhood/issues"
+  },
+  "homepage": "https://github.com/herdeiroeth/neighbourhood#readme",
   "keywords": [
-    "lan",
+    "cli",
+    "file-sharing",
     "file-transfer",
-    "network",
-    "p2p",
+    "lan",
     "local-network",
-    "file-sharing"
+    "nodejs",
+    "resumable-downloads"
   ],
-  "author": "herdeiroeth",
+  "author": {
+    "name": "Ryan Trunquim",
+    "url": "https://github.com/herdeiroeth"
+  },
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22"
   },
   "files": [
     "bin/",
     "lib/"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

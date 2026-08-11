@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-hygiene:
+    name: Repository hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Reject whitespace errors in the complete change
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          MERGE_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+        run: |
+          case "$EVENT_NAME" in
+            pull_request) base="$PR_BASE_SHA" ;;
+            merge_group) base="$MERGE_BASE_SHA" ;;
+            push)
+              base="$PUSH_BASE_SHA"
+              if test "$base" = "0000000000000000000000000000000000000000"; then
+                base=""
+              fi
+              ;;
+            *) base="" ;;
+          esac
+
+          if test -n "$base"; then
+            git diff --check "$base" "$GITHUB_SHA"
+          else
+            git show --check --format= "$GITHUB_SHA"
+          fi
+
+      - name: Check for unexpected generated archives
+        run: test -z "$(find . -maxdepth 1 -name '*.tgz' -print -quit)"
+
+  test:
+    name: Tests (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ['22', '24']
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Check source and metadata
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
+
+  package:
+    name: Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Inspect package contents
+        run: npm pack --dry-run
+
+  quality-gate:
+    name: Quality gate
+    if: ${{ always() }}
+    needs: [repository-hygiene, test, package]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every validation job to pass
+        env:
+          HYGIENE_RESULT: ${{ needs.repository-hygiene.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          PACKAGE_RESULT: ${{ needs.package.result }}
+        run: |
+          test "$HYGIENE_RESULT" = "success"
+          test "$TEST_RESULT" = "success"
+          test "$PACKAGE_RESULT" = "success"
