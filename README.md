@@ -8,46 +8,55 @@
 
 `trans` is a lightweight, self-contained file transfer tool for local networks. No external dependencies — just Node.js built-in modules. It features resume support, directory downloads (streamed as tar), and a beautiful progress bar.
 
+**⚠️ Security notice:** `trans` has **no authentication or TLS** — use only on trusted networks. The default bind is `0.0.0.0` (all interfaces) and CORS is wide open. Designed for quick LAN migrations, not public exposure.
+
 ---
 
 ## ✨ Features
 
 - **📂 Browse remote files** — list directories from another machine
-- **⬇️ Download files** — single file downloads with progress bar and ETA
+- **⬇️ Download files** — single file downloads with progress bar, speed and ETA
 - **📁 Download directories** — entire folders streamed as `.tar`
-- **⏯️ Resume support** — interrupt and resume downloads without restarting
-- **🚫 No dependencies** — pure Node.js, zero `npm install` needed
+- **⏯️ Resume support** — interrupt and resume downloads via HTTP Range headers
+- **🚫 No dependencies** — pure Node.js stdlib (`http`, `fs`, `path`, `os`, `stream`)
 - **🌐 LAN optimized** — built for local network speed and reliability
 - **🖥️ Cross-platform** — works on Windows, macOS, and Linux
 
 ---
 
-## 📦 Installation
+## 📦 Quick Start
 
 ```bash
+# No npm install needed! Just clone and run.
+
 # Clone the repo
 git clone https://github.com/herdeiroeth/trans.git
 cd trans
 
-# Or install globally
-npm install -g
+# Terminal 1: Start the server (shares current directory)
+node bin/server.js
+
+# Terminal 2: List and download files
+node bin/client.js localhost:3000 list /
+node bin/client.js localhost:3000 get /package.json
+node bin/client.js localhost:3000 get-dir /lib
 ```
 
 ---
 
 ## 🚀 Usage
 
-### 1️⃣ Start the server (on the machine with the files)
+### Server (machine with the files)
 
 ```bash
-# Share the current directory
-npx trans-server
+# Share the current directory on the default port (3000)
+node bin/server.js
 
 # Share a specific directory on a custom port
-npx trans-server /path/to/share --port 8080
+node bin/server.js /path/to/share --port 8080
 
 # Or using PORT env var
-PORT=8080 npx trans-server /path/to/share
+PORT=8080 node bin/server.js /path/to/share
 ```
 
 **Output:**
@@ -61,22 +70,21 @@ PORT=8080 npx trans-server /path/to/share
     node bin/client.js 192.168.1.10:3000 list /
 ```
 
-### 2️⃣ Use the client (on any machine on the same network)
+### Client (any machine on the LAN)
 
 ```bash
-# List files
-npx trans-client 192.168.1.10:3000 list /
-npx trans-client 192.168.1.10:3000 list /Documents
+# List files (ls is an alias for list)
+node bin/client.js 192.168.1.10:3000 list /
+node bin/client.js 192.168.1.10:3000 ls /Documents
 
 # Download a single file
-npx trans-client 192.168.1.10:3000 get /photos/vacation.zip
+node bin/client.js 192.168.1.10:3000 get /photos/vacation.zip
 
 # Download an entire directory (streamed as tar)
-npx trans-client 192.168.1.10:3000 get-dir /Documents
-
-# Shorter alias: 'ls' instead of 'list'
-npx trans-client 192.168.1.10:3000 ls /
+node bin/client.js 192.168.1.10:3000 get-dir /Documents
 ```
+
+Interrupted downloads leave a `.part` file — running the same `get` command again resumes automatically via HTTP Range headers.
 
 ---
 
@@ -86,55 +94,103 @@ For advanced use or browser access:
 
 | Endpoint | Method | Query Param | Description |
 |---|---|---|---|
-| `/api/list` | GET | `path` | List directory contents |
+| `/api/list` | GET | `path` | List directory contents as JSON |
 | `/api/stat` | GET | `path` | Get file/directory metadata |
-| `/api/download` | GET | `path` | Download a file (supports Range headers) |
+| `/api/download` | GET | `path` | Download a file (supports Range/206) |
 | `/api/download-dir` | GET | `path` | Download a directory as TAR archive |
 
 ---
 
-## 🔧 How It Works
+## 🔧 Architecture
 
 ```
-┌─────────────┐         HTTP/REST          ┌─────────────┐
-│   Server    │◄──────────────────────────►│   Client    │
-│  (sharing)  │   list / get / get-dir     │ (receiving) │
-└─────────────┘                            └─────────────┘
-     │                                            │
-     │  Zero dependencies                        │
-     │  Node.js built-in: http, fs, path         │
-     │  Resume via Range headers                 │
-     │  Directories as TAR streams               │
+[machine A - source]                    [machine B - destination]
+  trans-server                            trans-client
+  rootDir ──► HTTP :3000 ── LAN ──► list / get / get-dir
+              /api/list
+              /api/stat
+              /api/download      (file, Range)
+              /api/download-dir  (tar stream)
 ```
 
-- **Server** is a plain `http.createServer` with 4 REST endpoints
-- **Client** is a CLI tool using `http.get` with a real-time progress bar
-- **Resume** uses `.part` files + HTTP `Range` headers
-- **Directory downloads** create a TAR archive on-the-fly (POSIX tar format)
+### Project structure
+
+```
+.
+├── bin/
+│   ├── server.js          # Server CLI entrypoint
+│   └── client.js          # Client CLI entrypoint
+├── lib/
+│   ├── client/
+│   │   ├── index.js       # Argument parser and command dispatch
+│   │   ├── commands.js    # list / get / get-dir implementations
+│   │   ├── progress.js    # Progress bar with speed and ETA
+│   │   └── resume.js      # .part file management and Range headers
+│   ├── server/
+│   │   ├── index.js       # HTTP server + graceful shutdown
+│   │   ├── routes.js      # API route handlers with path safety
+│   │   └── tar-stream.js  # Streaming TAR generator (ustar format)
+│   └── shared/
+│       ├── protocol.js    # Port and endpoint constants
+│       └── format.js      # Size, speed, date formatters
+├── package.json
+├── README.md
+├── LICENSE
+└── .gitignore
+```
+
+| Layer | Path | Role |
+|---|---|---|
+| CLIs | `bin/` | Executable entrypoints |
+| Server | `lib/server/` | HTTP, routes, TAR generation |
+| Client | `lib/client/` | Commands, progress, resume logic |
+| Shared | `lib/shared/` | Protocol constants, formatting utilities |
+
+**Stack:**
+- **Runtime:** Node.js ≥ 18 (ES modules)
+- **Dependencies:** Zero (stdlib only)
+- **Protocol:** Plain HTTP/1.x (no TLS)
 
 ---
 
-## 🧪 Manual Test
+## 🧪 Manual Validation
 
-```bash
-# Terminal 1: Start the server
-npx trans-server
-
-# Terminal 2: List and download
-npx trans-client localhost:3000 list /
-npx trans-client localhost:3000 get /package.json
-npx trans-client localhost:3000 get-dir /lib
-```
+1. Start the server pointing to a fixture directory
+2. `list /` — verify names, types, and sizes
+3. `get` a small file, then a large file — test interrupt + resume
+4. `get-dir` — verify extraction locally
+5. Try `../` path traversal — expect 403 Forbidden
+6. Press Ctrl+C on the server — verify graceful shutdown message
 
 ---
 
-## 🛠️ Development
+## ⚠️ Security & Limitations
 
-```bash
-# No build step needed! Just edit and run.
-node bin/server.js
-node bin/client.js localhost:3000 list /
-```
+This tool is **deliberately permissive** for LAN migration:
+
+| Aspect | Current behavior | Risk |
+|---|---|---|
+| Authentication | None | Any host reaching the port can list and download |
+| TLS | None | Traffic is plaintext on the network |
+| Bind | `0.0.0.0` | Listens on all interfaces |
+| CORS | `Access-Control-Allow-Origin: *` | Enables browser access on the LAN |
+| Path safety | `safePath` restricts to `rootDir` | Mitigates basic path traversal |
+| Tar extraction | Sanitizes `..` in filenames | Reduces zip-slip-style issues |
+
+**Recommendations:**
+1. Use only on **trusted local networks** (or isolated tunnels)
+2. Do **not** expose the port on routers, WAN, or broad VPNs without additional auth
+3. Point `rootDir` only to the directory you actually need to migrate
+4. Stop the server as soon as transfers are complete
+
+**Known limitations:**
+- No authentication, user authorization, or access audit
+- No HTTPS/TLS — plain HTTP only
+- TAR implementation is simplified ustar: filenames > 100 chars are truncated
+- `get-dir` does **not** support resume (only single-file `get` does)
+- No automated tests, CI, or lint scripts
+- No rate limiting, size enforcement, or concurrency control
+- Windows compatibility has Git Bash path workarounds but no cross-platform test matrix
 
 ---
 
