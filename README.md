@@ -11,6 +11,8 @@
 
 The project is currently pre-release. GitHub release archives are automated; npm publication is intentionally disabled until ownership of the `@herdeiroeth` npm scope and a trusted publisher are confirmed.
 
+`master` is the only long-lived branch. Changes enter through pull requests and must pass the required quality gate and CodeQL analysis.
+
 ## Capabilities
 
 - List files and directories below an explicit shared root.
@@ -41,7 +43,7 @@ This installs two commands locally:
 - `neighbourhood-server`
 - `neighbourhood-client`
 
-Tagged releases also contain an installable package archive and its SHA-256 checksum. After verifying the checksum, install an archive with:
+When published, tagged releases contain an installable package archive and its SHA-256 checksum. After verifying the checksum, install an archive with:
 
 ```bash
 npm install --global ./herdeiroeth-neighbourhood-0.1.0.tgz
@@ -57,7 +59,7 @@ On the machine that owns the files, share only the required directory:
 neighbourhood-server /path/to/share
 ```
 
-The server prints the local address and one detected LAN address. The default port is `3000`.
+With the default wildcard bind, the server prints the local address and one detected LAN address. The default port is `3000`.
 
 ```text
 neighbourhood-server [directory] [--host address] [--port number]
@@ -115,12 +117,13 @@ The client validates remote metadata, `Content-Range`, and the final byte count 
 
 ### Directories
 
-The server produces a deterministic POSIX ustar stream. The client validates header checksums, entry types, path confinement, padding, and the end marker while extracting it.
+The server produces a deterministically ordered POSIX ustar stream. The client validates header checksums, entry types, path confinement, padding, and the end marker while extracting it.
 
 - Empty directories and empty files are preserved.
-- Symbolic links and special files are not included.
+- Symbolic links and special files are not included in directory archives.
 - Existing regular files are never overwritten during extraction.
 - Directory transfers do not resume after interruption.
+- An interrupted directory transfer may leave completed files in place. Inspect and remove only files created by the failed attempt, or retry from a clean destination.
 
 ## HTTP API
 
@@ -159,11 +162,11 @@ npm pack --dry-run
 
 The test suite uses `node:test` and has no third-party test runner. It covers root confinement, symbolic links, empty files, valid and invalid byte ranges, interrupted resume behavior, TAR chunk boundaries, checksums, traversal, truncation, and overwrite protection.
 
-Pull requests should follow [CONTRIBUTING.md](CONTRIBUTING.md). CI must pass on every supported operating system and Node.js version before a release tag is created.
+Pull requests should follow [CONTRIBUTING.md](CONTRIBUTING.md). Before creating a release tag, confirm that the full CI matrix has passed on `master`.
 
 ## Releases and package distribution
 
-The version in `package.json` is the source of truth. Pushing a matching tag such as `v0.1.0` runs validation, creates the npm-compatible `.tgz`, writes a SHA-256 checksum, and creates a GitHub Release with generated notes.
+The version in `package.json` is the source of truth. Pushing a matching tag such as `v0.1.0` runs validation and, when successful, creates the npm-compatible `.tgz`, its SHA-256 checksum, and a GitHub Release with generated notes.
 
 The package metadata is prepared as `@herdeiroeth/neighbourhood` with public access. The release workflow does **not** run `npm publish` and stores no registry credential. npm publication should be added only after the scope is confirmed and npm trusted publishing is configured for this repository.
 
@@ -173,7 +176,7 @@ The package metadata is prepared as `@herdeiroeth/neighbourhood` with public acc
 - Single-file resume detects byte-count inconsistencies but does not verify content hashes.
 - Directory transfers are uncompressed and cannot resume.
 - POSIX ustar path and file-size limits apply.
-- Symbolic links, devices, sockets, and other special filesystem entries are skipped.
+- Symbolic links, devices, sockets, and other special filesystem entries are skipped in listings and directory archives.
 - The server is intended for temporary transfers, not permanent file hosting.
 
 ## License
